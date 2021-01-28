@@ -2,11 +2,8 @@ package batch_reader
 
 import (
 	"context"
-	"os"
-	"os/signal"
 	"path"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/pkg/errors"
@@ -46,10 +43,7 @@ func NewFileBatchReader(process int) *FileBatchReader {
 // ctx 上下文
 // files 文件列表
 // handler 处理函数
-func (r *FileBatchReader) Run(files []string, handler Handler) (err error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	go r.watch(cancel)
-
+func (r *FileBatchReader) Run(ctx context.Context, files []string, handler Handler) (err error) {
 	r.handler = handler
 	r.l.WithFields(logrus.Fields{"files": files}).Info("files")
 
@@ -73,14 +67,6 @@ func (r *FileBatchReader) Run(files []string, handler Handler) (err error) {
 	}
 
 	return nil
-}
-
-func (r *FileBatchReader) watch(cancel context.CancelFunc) {
-	sign := make(chan os.Signal, 1)
-	signal.Notify(sign, syscall.SIGTERM, syscall.SIGINT, syscall.SIGKILL, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGSTOP)
-	s := <-sign
-	r.l.WithField("signal", s.String()).Info("receive signal")
-	cancel()
 }
 
 func (r *FileBatchReader) run(ctx context.Context) {
