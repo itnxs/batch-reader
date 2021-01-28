@@ -21,11 +21,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/itnxs/batch-reader"
-	"github.com/sirupsen/logrus"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/itnxs/batch-reader"
+	"github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -57,5 +58,6 @@ func watch(cancel context.CancelFunc) {
 	logrus.WithField("signal", s.String()).Info("receive signal")
 	cancel()
 }
+
 ```
 
