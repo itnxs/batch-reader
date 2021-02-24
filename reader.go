@@ -58,6 +58,7 @@ func (r *FileBatchReader) Run(ctx context.Context, files []string, handler Handl
 	for _, name := range files {
 		if r.status.isFinish(name) {
 			r.l.WithFields(logrus.Fields{"file": name}).Info("file is finish")
+			r.wait.Done()
 			continue
 		}
 
