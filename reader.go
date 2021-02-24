@@ -34,7 +34,7 @@ func NewFileBatchReader(process int) *FileBatchReader {
 	return &FileBatchReader{
 		status:  newStatus("./status.yaml"),
 		process: process,
-		queue:   make(chan fileLine, 100),
+		queue:   make(chan fileLine),
 		l:       logrus.New(),
 	}
 }
@@ -48,9 +48,12 @@ func (r *FileBatchReader) Run(ctx context.Context, files []string, handler Handl
 	r.l.WithFields(logrus.Fields{"files": files}).Info("files")
 
 	for p := 1; p <= r.process; p++ {
-		r.wait.Add(1)
 		go r.run(ctx)
 	}
+
+	size := len(files)
+	r.queue = make(chan fileLine, size)
+	r.wait.Add(size)
 
 	for _, name := range files {
 		if r.status.isFinish(name) {
@@ -62,10 +65,7 @@ func (r *FileBatchReader) Run(ctx context.Context, files []string, handler Handl
 		r.queue <- fileLine{Name: name, Line: line}
 	}
 
-	if len(r.queue) > 0 {
-		r.wait.Wait()
-	}
-
+	r.wait.Wait()
 	return nil
 }
 
@@ -76,14 +76,12 @@ func (r *FileBatchReader) run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case file := <-r.queue:
-			r.wait.Add(1)
 			err := r.read(ctx, file)
 			if err != nil {
 				r.l.WithError(err).WithFields(logrus.Fields{"file": file}).Error("error")
-				r.wait.Done()
 				return
 			}
-			r.wait.Done()
+
 			if len(r.queue) == 0 {
 				return
 			}
@@ -148,6 +146,7 @@ func (r *FileBatchReader) read(ctx context.Context, file fileLine) error {
 
 	l.Info("end read file")
 	r.status.done(file.Name, count, true)
+	r.wait.Done()
 
 	return nil
 }

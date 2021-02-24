@@ -22,7 +22,7 @@ func main() {
 	go watch(cancel)
 
 	// 读取文件内容
-	r := batch_reader.NewFileBatchReader(2)
+	r := batch_reader.NewFileBatchReader(5)
 	err = r.Run(ctx, files, func(ctx context.Context, data []byte) error {
 		fmt.Println(string(data))
 		return nil
