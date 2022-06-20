@@ -12,6 +12,9 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/klauspost/compress/zstd"
+	"github.com/pkg/errors"
 )
 
 // Exist 是否存在
@@ -97,18 +100,24 @@ func ReadLine(ctx context.Context, source string, line int64, handle func([]byte
 
 	defer file.Close()
 
-	if !strings.EqualFold(path.Ext(source), ".gz") {
-		return read(ctx, file, line, handle)
+	ext := path.Ext(source)
+	if strings.EqualFold(ext, ".zst") {
+		zst, err := zstd.NewReader(file)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		defer zst.Close()
+		return read(ctx, zst, line, handle)
+	} else if strings.EqualFold(ext, ".gz") {
+		gz, err := gzip.NewReader(file)
+		if err != nil {
+			return errors.WithStack(err)
+		}
+		defer gz.Close()
+		return read(ctx, gz, line, handle)
 	}
 
-	gz, err := gzip.NewReader(file)
-	if err != nil {
-		return err
-	}
-
-	defer gz.Close()
-
-	return read(ctx, gz, line, handle)
+	return read(ctx, file, line, handle)
 }
 
 func read(ctx context.Context, reader io.Reader, line int64, handle func([]byte) error) error {

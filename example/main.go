@@ -13,7 +13,7 @@ import (
 
 func main() {
 	// 读取目录文件
-	files, err := batch_reader.LoadFiles("./")
+	files, err := batch_reader.LoadFiles("./data")
 	if err != nil {
 		panic(err)
 	}
